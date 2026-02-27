@@ -1,0 +1,113 @@
+name: Production CI - Sequential DevSecOps
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+env:
+  IMAGE_NAME: bayers-devsecops-demo
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ------------------------------------------------
+      # CHECKOUT (only once)
+      # ------------------------------------------------
+      - name: Checkout (full history for Sonar)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ------------------------------------------------
+      # SETUP PYTHON
+      # ------------------------------------------------
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      # ------------------------------------------------
+      # UNIT TESTS (Fail Fast)
+      # ------------------------------------------------
+      - name: Run Unit Tests
+        run: python -m unittest discover -s tests -v
+
+      # ------------------------------------------------
+      # SONARCLOUD ANALYSIS
+      # ------------------------------------------------
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+
+      # ------------------------------------------------
+      # OWASP DEPENDENCY CHECK
+      # ------------------------------------------------
+      - name: OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: bayers-devsecops-demo
+          path: .
+          format: "HTML"
+
+      # ------------------------------------------------
+      # TRIVY FILESYSTEM SCAN
+      # ------------------------------------------------
+      - name: Trivy FS Scan
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+
+      # ------------------------------------------------
+      # BUILD DOCKER IMAGE
+      # ------------------------------------------------
+      - name: Build Docker Image
+        run: docker build -t $IMAGE_NAME:${{ github.sha }} .
+
+      # ------------------------------------------------
+      # TRIVY IMAGE SCAN
+      # ------------------------------------------------
+      - name: Trivy Image Scan
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: $IMAGE_NAME:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+
+      # ------------------------------------------------
+      # SBOM GENERATION
+      # ------------------------------------------------
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: spdx-json
+          output-file: sbom.spdx.json
+
+      # ------------------------------------------------
+      # PUSH IMAGE (Only on main)
+      # ------------------------------------------------
+      - name: Login to Docker Hub
+        if: github.ref == 'refs/heads/main'
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      - name: Push Image
+        if: github.ref == 'refs/heads/main'
+        run: |
+          docker tag $IMAGE_NAME:${{ github.sha }} \
+            ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:${{ github.sha }}
+          docker push ${{ secrets.DOCKER_USERNAME }}/$IMAGE_NAME:${{ github.sha }}
