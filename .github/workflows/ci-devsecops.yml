@@ -79,7 +79,7 @@ jobs:
         with:
           project: bayers-devsecops-demo
           path: .
-          format: "HTML,JSON"
+          format: "ALL"
 
       - name: Upload dependency-check report
         uses: actions/upload-artifact@v4
