@@ -76,7 +76,7 @@ jobs:
       # BUILD DOCKER IMAGE
       # ------------------------------------------------
       - name: Build Docker Image
-        run: docker build -t $IMAGE_NAME:${{ github.sha }} .
+        run: docker build -t ${{ env.IMAGE_NAME }}:${{ github.sha }} .
 
       # ------------------------------------------------
       # TRIVY IMAGE SCAN
@@ -84,7 +84,7 @@ jobs:
       - name: Trivy Image Scan
         uses: aquasecurity/trivy-action@0.24.0
         with:
-          image-ref: $IMAGE_NAME:${{ github.sha }}
+          image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
           severity: HIGH,CRITICAL
           exit-code: "1"
 
