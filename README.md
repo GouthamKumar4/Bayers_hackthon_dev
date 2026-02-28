@@ -22,7 +22,7 @@ tests_simple/           # tests for simple app
 Dockerfile              # container for modular app
 Dockerfile.simple       # container for simple app
 .github/workflows/ci-devsecops.yml      # modular app pipeline
-.github/workflows/simple-app-ci.yml     # simple app pipeline
+.github/workflows/simple-app-ci.yml     # simple app DevSecOps pipeline (tests+sonar+trivy+owasp+sbom)
 ```
 
 ## Modular app run

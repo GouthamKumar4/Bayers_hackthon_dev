@@ -1,4 +1,4 @@
-name: Simple App CI
+name: Simple App CI + DevSecOps
 
 on:
   push:
@@ -34,8 +34,119 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run simple app tests
-        run: python -m unittest discover -s tests_simple -v
+      - name: Run simple app tests with coverage
+        run: |
+          coverage run -m unittest discover -s tests_simple -v
+          coverage xml
 
       - name: Build simple app Docker image
         run: docker build -f Dockerfile.simple -t booking-simple:${{ github.sha }} .
+
+  simple-sonar-scan:
+    name: Simple App SonarQube + Quality Gate
+    runs-on: ubuntu-latest
+    needs: simple-build-test
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL != '' && vars.SONAR_HOST_URL || 'https://sonarcloud.io' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies for analysis
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Generate simple app coverage report for Sonar
+        run: |
+          coverage run -m unittest discover -s tests_simple -v
+          coverage xml
+
+      - name: SonarQube scan (simple app scope)
+        if: ${{ env.SONAR_TOKEN != '' }}
+        uses: SonarSource/sonarqube-scan-action@v5
+        with:
+          args: >
+            -Dsonar.sources=simple_app
+            -Dsonar.tests=tests_simple
+            -Dsonar.python.coverage.reportPaths=coverage.xml
+
+      - name: SonarQube quality gate
+        if: ${{ env.SONAR_TOKEN != '' }}
+        uses: SonarSource/sonarqube-quality-gate-action@master
+        timeout-minutes: 10
+
+  simple-trivy-scan:
+    name: Simple App Trivy Scan
+    runs-on: ubuntu-latest
+    needs: simple-build-test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Trivy filesystem scan (simple app)
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+
+      - name: Trivy image scan (simple app image)
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: booking-simple:${{ github.sha }}
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+  simple-owasp-dependency-check:
+    name: Simple App OWASP Dependency-Check
+    runs-on: ubuntu-latest
+    needs: simple-build-test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run dependency-check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          project: booking-simple
+          path: .
+          format: "ALL"
+
+      - name: Upload dependency-check report
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report-simple
+          path: reports/
+
+  simple-sbom:
+    name: Simple App SBOM
+    runs-on: ubuntu-latest
+    needs: simple-build-test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create SBOM (SPDX)
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: spdx-json
+          output-file: sbom-simple.spdx.json
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-simple
+          path: sbom-simple.spdx.json
