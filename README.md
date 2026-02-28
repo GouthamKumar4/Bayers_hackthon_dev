@@ -76,3 +76,10 @@ The Docker image uses **Python 3.12 slim** to avoid alpha/interpreter compatibil
 docker build -t booking-service .
 docker run --rm -p 8000:8000 booking-service
 ```
+
+
+## Vulnerability scan policy notes
+
+- Image and filesystem Trivy scans are configured to fail on high/critical findings.
+- For vulnerabilities with no upstream fix available yet (for example distro-level `will_not_fix` / unfixed advisories), CI uses `ignore-unfixed: true` to avoid blocking builds on unpatchable base-image issues.
+- Base image packages are upgraded during Docker build (`apt-get upgrade`) to pick up available Debian security updates.
