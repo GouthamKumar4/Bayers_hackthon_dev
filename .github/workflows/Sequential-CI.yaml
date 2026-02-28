@@ -38,8 +38,10 @@ jobs:
       # ------------------------------------------------
       # UNIT TESTS (Fail Fast)
       # ------------------------------------------------
-      - name: Run Unit Tests
-        run: python -m unittest discover -s tests -v
+      - name: Run Unit Tests with Coverage
+        run: |
+          coverage run -m unittest discover -s tests -v
+          coverage xml
 
       # ------------------------------------------------
       # SONARCLOUD ANALYSIS

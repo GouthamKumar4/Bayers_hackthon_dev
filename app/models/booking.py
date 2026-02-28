@@ -1,6 +1,9 @@
 from dataclasses import dataclass
+from importlib.util import find_spec
 
-try:
+HAS_PYDANTIC = find_spec("pydantic") is not None
+
+if HAS_PYDANTIC:
     from pydantic import BaseModel, Field
 
     class BookingCreate(BaseModel):
@@ -14,7 +17,7 @@ try:
         event_name: str
         seats: int
 
-except ModuleNotFoundError:
+else:
 
     @dataclass
     class BookingCreate:

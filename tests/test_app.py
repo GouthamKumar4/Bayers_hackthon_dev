@@ -1,16 +1,16 @@
 import unittest
+from importlib.util import find_spec
 
 from app.models.booking import BookingCreate
 from app.repositories.booking_repository import InMemoryBookingRepository
 from app.services.booking_service import BookingService
 
-try:
-    from fastapi.testclient import TestClient
-    from app.main import app
+HAS_FASTAPI = find_spec("fastapi") is not None
 
-    HAS_FASTAPI = True
-except ModuleNotFoundError:
-    HAS_FASTAPI = False
+if HAS_FASTAPI:
+    from fastapi.testclient import TestClient
+
+    from app.main import app
 
 
 class BookingServiceTestCase(unittest.TestCase):
