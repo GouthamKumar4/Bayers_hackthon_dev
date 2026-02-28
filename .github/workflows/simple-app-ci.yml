@@ -24,6 +24,9 @@ jobs:
   simple-ci:
     name: Simple App Sequential CI
     runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL != '' && vars.SONAR_HOST_URL || 'https://sonarcloud.io' }}
     steps:
       - name: Checkout (full history for Sonar)
         uses: actions/checkout@v4
@@ -46,11 +49,11 @@ jobs:
           coverage xml
 
       - name: SonarQube scan (simple app scope)
-        if: ${{ secrets.SONAR_TOKEN != '' }}
+        if: ${{ env.SONAR_TOKEN != '' }}
         uses: SonarSource/sonarqube-scan-action@v5
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL != '' && vars.SONAR_HOST_URL || 'https://sonarcloud.io' }}
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
         with:
           args: >
             -Dsonar.sources=simple_app
@@ -58,11 +61,11 @@ jobs:
             -Dsonar.python.coverage.reportPaths=coverage.xml
 
       - name: SonarQube quality gate
-        if: ${{ secrets.SONAR_TOKEN != '' }}
+        if: ${{ env.SONAR_TOKEN != '' }}
         uses: SonarSource/sonarqube-quality-gate-action@master
         timeout-minutes: 10
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
 
       - name: OWASP Dependency-Check
         uses: dependency-check/Dependency-Check_Action@main
