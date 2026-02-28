@@ -1,36 +1,29 @@
-import json
-import threading
-import time
-import unittest
-from http.server import HTTPServer
-from urllib.request import urlopen
+from fastapi.testclient import TestClient
 
-from app.main import DemoHandler
+from app.main import app
+
+client = TestClient(app)
 
 
-class AppTestCase(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls.server = HTTPServer(("127.0.0.1", 8001), DemoHandler)
-        cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
-        cls.thread.start()
-        time.sleep(0.1)
-
-    @classmethod
-    def tearDownClass(cls) -> None:
-        cls.server.shutdown()
-        cls.thread.join(timeout=2)
-
-    def test_health_endpoint(self) -> None:
-        with urlopen("http://127.0.0.1:8001/") as response:
-            payload = json.loads(response.read().decode("utf-8"))
-        self.assertEqual(payload["status"], "ok")
-
-    def test_add_endpoint(self) -> None:
-        with urlopen("http://127.0.0.1:8001/add/2/3") as response:
-            payload = json.loads(response.read().decode("utf-8"))
-        self.assertEqual(payload["result"], 5)
+def test_health_endpoint() -> None:
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json()["status"] == "ok"
 
 
-if __name__ == "__main__":
-    unittest.main()
+def test_create_and_get_booking() -> None:
+    create_response = client.post(
+        "/bookings",
+        json={"customer_name": "Alex", "event_name": "Concert", "seats": 2},
+    )
+    assert create_response.status_code == 201
+    created_booking = create_response.json()
+
+    get_response = client.get(f"/bookings/{created_booking['booking_id']}")
+    assert get_response.status_code == 200
+    assert get_response.json()["customer_name"] == "Alex"
+
+
+def test_get_unknown_booking_returns_404() -> None:
+    response = client.get("/bookings/9999")
+    assert response.status_code == 404
