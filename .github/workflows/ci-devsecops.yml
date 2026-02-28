@@ -38,6 +38,8 @@ jobs:
     env:
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
       SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL != '' && vars.SONAR_HOST_URL || 'https://sonarcloud.io' }}
+      SONAR_PROJECT_KEY: GouthamKumar4_Bayers_hackthon_dev
+      SONAR_PROJECT_NAME: Bayers_hackthon_dev
     steps:
       - name: Checkout
         uses: actions/checkout@v4
