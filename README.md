@@ -66,3 +66,13 @@ python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```bash
 python -m unittest discover -s tests -v
 ```
+
+
+## Docker
+
+The Docker image uses **Python 3.12 slim** to avoid alpha/interpreter compatibility issues with FastAPI/Pydantic wheels during install.
+
+```bash
+docker build -t booking-service .
+docker run --rm -p 8000:8000 booking-service
+```

@@ -1,4 +1,4 @@
-FROM python:3.15.0a6-slim-bookworm
+FROM python:3.12-slim-bookworm
 
 WORKDIR /app
 COPY requirements.txt .
@@ -6,4 +6,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
 EXPOSE 8000
-CMD ["python", "app/main.py"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
