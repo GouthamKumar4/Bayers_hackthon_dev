@@ -48,17 +48,12 @@ jobs:
           coverage run -m unittest discover -s tests_simple -v
           coverage xml
 
-      - name: SonarQube scan (simple app scope)
+      - name: SonarQube scan (shared main project config)
         if: ${{ env.SONAR_TOKEN != '' }}
         uses: SonarSource/sonarqube-scan-action@v5
         env:
           SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
-        with:
-          args: >
-            -Dsonar.sources=simple_app
-            -Dsonar.tests=tests_simple
-            -Dsonar.python.coverage.reportPaths=coverage.xml
 
       - name: SonarQube quality gate
         if: ${{ env.SONAR_TOKEN != '' }}
